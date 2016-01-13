@@ -10,11 +10,17 @@ object Main {
 
   // Tables -------------------------------------
 
-  case class Album(
-    artist : String,
-    title  : String,
-    year   : Int,
-    id     : Long = 0L)
+  class Album (
+    val artist: String,
+    val title: String,
+    val year: Int,
+    val id: Long = 0L) {
+  }
+
+  def extractAlbum(a: Album) = Some((a.artist, a.title, a.year, a.id))
+  def createAlbum(fields: (String, String, Int, Long)) = fields match {
+    case (artist, title, year, id) => new Album(artist, title, year, id)
+  }
 
   class AlbumTable(tag: Tag) extends Table[Album](tag, "albums") {
     def artist = column[String]("artist")
@@ -22,7 +28,7 @@ object Main {
     def year   = column[Int]("year")
     def id     = column[Long]("id", O.PrimaryKey, O.AutoInc)
 
-    def * = (artist, title, year, id) <> (Album.tupled, Album.unapply)
+    def * = (artist, title, year, id) <> (createAlbum, extractAlbum)
   }
 
   lazy val AlbumTable = TableQuery[AlbumTable]
@@ -36,11 +42,11 @@ object Main {
 
   val insertAlbumsAction =
     AlbumTable ++= Seq(
-      Album( "Keyboard Cat"  , "Keyboard Cat's Greatest Hits"  , 2009), // released in 2009
-      Album( "Spice Girls"   , "Spice"                         , 1996), // released in 1996
-      Album( "Rick Astley"   , "Whenever You Need Somebody"    , 1987), // released in 1987
-      Album( "Manowar"       , "The Triumph of Steel"          , 1992), // released in 1992
-      Album( "Justin Bieber" , "Believe"                       , 2013)) // released in 2013
+      new Album( "Keyboard Cat"  , "Keyboard Cat's Greatest Hits"  , 2009), // released in 2009
+      new Album( "Spice Girls"   , "Spice"                         , 1996), // released in 1996
+      new Album( "Rick Astley"   , "Whenever You Need Somebody"    , 1987), // released in 1987
+      new Album( "Manowar"       , "The Triumph of Steel"          , 1992), // released in 1992
+      new Album( "Justin Bieber" , "Believe"                       , 2013)) // released in 2013
 
   val selectAlbumsAction =
     AlbumTable.result
