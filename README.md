@@ -74,3 +74,25 @@ and code samples about Scala, Slick, and functional programming.
 [Apache 2]: http://www.apache.org/licenses/LICENSE-2.0
 [Underscore newsletter]: http://underscore.io/newsletter.html
 [Gitter channel]: https://gitter.im/underscoreio/scalax15-slick
+
+
+##Lessons Learned
+### Queries
+ The function in     `def artist = column[String]("artist")` have actually signature `def artist: Rep[String] = column[String]("artist")` so we are always dealing with _representations_ of our data type described in our (case) classes
+
+ Lift always delegates the compiler to apply implicit converters. If you find problems in applying operators it might be due to this
+
+ The `map` over a query changes the `Rep` on which we are working, therefore it might be that filters on fields that have been excluded don't work anymore
+
+ Any query is defined by three type parameters: `Query[Packed, Unpacked, CollectionType]`, e.g. `AlbumTable` is a `Query[AlbumTable, Album, Seq]` and any map affects these parameterization:
+  
+  ``` Scala 
+  val q0: Query[AlbumTable, Album, Seq] = AlbumTable
+  val q1: Query[AlbumTable, Album, Seq] = q0.filter(_.year === 1990)
+  val q2: Query[Rep[String], String, Seq] = q0.map(_.title) //see how Rep[String], String are aligned
+  ```  
+
+ What is `Rep[T]`? It's an SQL expression of type `T`. All the query expressions are `Rep[_]`, e.g. `t.artist` is `Rep[String]`, and even `t.artist === "Justin Bieber"` defines a `Rep[Boolean]` 
+
+### Actions
+ 

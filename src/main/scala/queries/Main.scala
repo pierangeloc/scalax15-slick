@@ -1,5 +1,7 @@
 package queries
 
+import slick.lifted
+
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -47,7 +49,7 @@ object Main {
   val selectAllQuery =
     AlbumTable
 
-  val selectWhereQuery =
+  val selectWhereQuery: Query[AlbumTable, Album, Seq] =
     AlbumTable
       .filter(_.rating === (Rating.Awesome : Rating))
 
@@ -63,11 +65,11 @@ object Main {
     AlbumTable
       .drop(2).take(1)
 
-  val selectColumnsQuery1 =
+  val selectColumnsQuery1: Query[Rep[String], String, Seq] =
     AlbumTable
       .map(_.title)
 
-  val selectColumnsQuery2 =
+  val selectColumnsQuery2: Query[(Rep[String], Rep[String]), (String, String), Seq] =
     AlbumTable
       .map(a => (a.artist, a.title))
 
@@ -75,6 +77,25 @@ object Main {
     AlbumTable
       .filter(_.artist === "Keyboard Cat")
       .map(_.title)
+
+  //albums released after 1990 with rating NotBad or higher, with titles in ascending order
+  val exercise1: Query[AlbumTable, Album, Seq] =
+    AlbumTable
+      .filter(_.year >= 1990 )
+      //option 1
+      //.filter(_.rating inSet List(Rating.NotBad, Rating.Good, Rating.Awesome))
+      //option 2: being Rating actually an Int, it supports >=. However, the implicit conversion used by default is turning any type T in an expression >= t where t:T into >= Rep[T], therefore it implicitly converts it into a Rep[Rating.NotBad] instead of Rep[Rating], so we must instruct the compiler to interpret Rating.NotBad as a Rating
+      .filter(_.rating >= (Rating.NotBad : Rating))
+      .sortBy(_.artist)
+
+  val exercise2: Query[Rep[String], String, Seq] =
+    AlbumTable
+      .sortBy(_.year.asc)
+      .map(_.title)
+//N.B. if we swap them we get a compilation error. Reason is the following:
+  val q0: Query[AlbumTable, Album, Seq] = AlbumTable
+  val q1: Query[AlbumTable, Album, Seq] = q0.filter(_.year === 1990)
+  val q2: Query[Rep[String], String, Seq] = q0.map(_.title)
 
 
 
@@ -114,7 +135,12 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     createTestAlbums()
-    exec(selectCombinedQuery.result).foreach(println)
+//    exec(selectCombinedQuery.result).foreach(println)
+//    exec(AlbumTable.filter(_.artist === "Justin Bieber").result).foreach(println)
+
+    exec(exercise1.result).foreach(println)
+    println("========")
+    exec(exercise2.result).foreach(println)
   }
 
 }
