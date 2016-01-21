@@ -1,11 +1,13 @@
 package actions
 
+import slick.dbio.Effect.{Schema, Write}
+
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import slick.dbio.DBIOAction
-import slick.profile.SqlAction
+import slick.profile.{FixedSqlAction, SqlAction}
 
 import slick.driver.H2Driver.api._
 
@@ -36,17 +38,17 @@ object Main {
 
   // Schema actions -----------------------------
 
-  val createTableAction =
+  val createTableAction: FixedSqlAction[Unit, NoStream, Schema] =
     AlbumTable.schema.create
 
-  val dropTableAction =
+  val dropTableAction: FixedSqlAction[Unit, NoStream, Schema] =
     AlbumTable.schema.drop
 
 
 
   // Select actions -----------------------------
 
-  val selectAction =
+  val selectAction: DBIOAction[Seq[String], NoStream, Effect.Read] =
     AlbumTable
       .filter(_.artist === "Keyboard Cat")
       .map(_.title)
@@ -56,13 +58,13 @@ object Main {
 
   // Update actions -----------------------------
 
-  val updateAction =
+  val updateAction: DBIOAction[Int, NoStream, Effect.Write]=
     AlbumTable
       .filter(_.artist === "Keyboard Cat")
       .map(_.title)
       .update("Even Greater Hits")
 
-  val updateAction2 =
+  val updateAction2: DBIOAction[Int, NoStream, Effect.Write] =
     AlbumTable
       .filter(_.artist === "Keyboard Cat")
       .map(a => (a.title, a.year))
@@ -72,19 +74,18 @@ object Main {
 
   // Delete actions -----------------------------
 
-  val deleteAction =
+  val deleteAction: DBIOAction[Int, NoStream, Effect.Write] =
     AlbumTable
       .filter(_.artist === "Justin Bieber")
       .delete
 
 
-
   // Insert actions -----------------------------
 
-  val insertOneAction =
+  val insertOneAction: DBIOAction[Int, NoStream, Effect.Write] =
     AlbumTable += Album("Pink Floyd", "Dark Side of the Moon", 1978, Rating.Awesome )
 
-  val insertAllAction =
+  val insertAllAction: DBIOAction[Option[Int], NoStream, Effect.Write]  =
     AlbumTable ++= Seq(
       Album( "Keyboard Cat"  , "Keyboard Cat's Greatest Hits" , 2009 , Rating.Awesome ),
       Album( "Spice Girls"   , "Spice"                        , 1996 , Rating.Good    ),
@@ -93,6 +94,24 @@ object Main {
       Album( "Justin Bieber" , "Believe"                      , 2013 , Rating.Aaargh  ))
 
 
+  val ex1: FixedSqlAction[Option[Int], NoStream, Write] =
+    AlbumTable ++= Seq(
+      Album( "Pearl Jam"     , "Ten"             , 1991 , Rating.Awesome ),
+      Album( "Dire Straits"  , "Communique"      , 1979 , Rating.Awesome ),
+      Album( "Eric Clapton"  , "From the Cradle" , 1994 , Rating.Awesome ),
+      Album( "Led Zeppelin"  , "Led Zeppelin"    , 1969 , Rating.Awesome )
+  )
+
+  def ex2(year: Int): FixedSqlAction[Int, NoStream, Write] =
+    AlbumTable
+      .filter(_.year >= year)
+      .map(_.rating)
+      .update(Rating.Meh)
+
+  def ex3(artist: String): FixedSqlAction[Int, NoStream, Write] =
+    AlbumTable
+        .filter(_.artist === artist)
+        .delete
 
   // Database -----------------------------------
 
@@ -108,8 +127,17 @@ object Main {
   def main(args: Array[String]): Unit = {
     exec(createTableAction)
     exec(insertAllAction)
-    exec(insertOneAction)
-    exec(selectAction).foreach(println)
+    exec(AlbumTable.result).foreach(println)
+    exec(ex1)
+    println("\nafter insertion (ex 1)")
+    exec(AlbumTable.result).foreach(println)
+    exec(ex2(2000))
+    println("\nafter update new albums'rating to Meh (ex 2)")
+    exec(AlbumTable.result).foreach(println)
+    exec(ex3("Justin Bieber"))
+    println("\nafter removing JB (ex 3)")
+    exec(AlbumTable.result).foreach(println)
+
   }
 
 }

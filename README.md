@@ -86,7 +86,8 @@ and code samples about Scala, Slick, and functional programming.
 
  Any query is defined by three type parameters: `Query[Packed, Unpacked, CollectionType]`, e.g. `AlbumTable` is a `Query[AlbumTable, Album, Seq]` and any map affects these parameterization:
   
-  ``` Scala 
+  
+  ``` 
   val q0: Query[AlbumTable, Album, Seq] = AlbumTable
   val q1: Query[AlbumTable, Album, Seq] = q0.filter(_.year === 1990)
   val q2: Query[Rep[String], String, Seq] = q0.map(_.title) //see how Rep[String], String are aligned
@@ -94,5 +95,14 @@ and code samples about Scala, Slick, and functional programming.
 
  What is `Rep[T]`? It's an SQL expression of type `T`. All the query expressions are `Rep[_]`, e.g. `t.artist` is `Rep[String]`, and even `t.artist === "Justin Bieber"` defines a `Rep[Boolean]` 
 
-### Actions
+### Actions;
+ An action occurs whenever we update/modify the DB. All Actions derive from `DBIOAction[R, S, E]` where:
+ - `R` is the result type 
+ - `S` is a type that defines if the action is a streaming or not streaming action. Slick supports ReactiveStreams, it backpressures results!!!
+ - `E` is a type that describes the effect (read/write/schema/transaction, etc), so Slick can see what 
  
+ e.g.: `FixedSqlAction[Option[Int], NoStream, Write]`, `FixedSqlAction[Int, NoStream, Write]`, 
+ As a shorthand, `DBIO[Res]` is equivalent to `DBIO[Res, NoStream, All]`.
+ Once we get an action `action: DBIO[R,S,E]`, `db.run(action): Future[R]`
+ 
+ How to get the statements? For `action: SqlAction[R, S, E]` we can call `action.statements` that returns the `Seq[]` of sql statements. 
