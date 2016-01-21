@@ -87,11 +87,11 @@ and code samples about Scala, Slick, and functional programming.
  Any query is defined by three type parameters: `Query[Packed, Unpacked, CollectionType]`, e.g. `AlbumTable` is a `Query[AlbumTable, Album, Seq]` and any map affects these parameterization:
   
   
-  ``` 
-  val q0: Query[AlbumTable, Album, Seq] = AlbumTable
-  val q1: Query[AlbumTable, Album, Seq] = q0.filter(_.year === 1990)
-  val q2: Query[Rep[String], String, Seq] = q0.map(_.title) //see how Rep[String], String are aligned
-  ```  
+``` 
+val q0: Query[AlbumTable, Album, Seq] = AlbumTable
+val q1: Query[AlbumTable, Album, Seq] = q0.filter(_.year === 1990)
+val q2: Query[Rep[String], String, Seq] = q0.map(_.title) //see how Rep[String], String are aligned
+```  
 
  What is `Rep[T]`? It's an SQL expression of type `T`. All the query expressions are `Rep[_]`, e.g. `t.artist` is `Rep[String]`, and even `t.artist === "Justin Bieber"` defines a `Rep[Boolean]` 
 
@@ -105,4 +105,28 @@ and code samples about Scala, Slick, and functional programming.
  As a shorthand, `DBIO[Res]` is equivalent to `DBIO[Res, NoStream, All]`.
  Once we get an action `action: DBIO[R,S,E]`, `db.run(action): Future[R]`
  
- How to get the statements? For `action: SqlAction[R, S, E]` we can call `action.statements` that returns the `Seq[]` of sql statements. 
+ How to get the statements? For `action: SqlAction[R, S, E]` we can call `action.statements` that returns the `Seq[]` of sql statements.
+  
+#### Chaining Actions
+ Actions are essentially IOMonads, so they can be chained together, so we can define a chaining action with 
+ 
+```Scala
+val bigAction = action1 andThen action2 andThen action3
+exec(bigAction)
+```
+or flatmap and chain results:
+
+```Scala
+def chain(a: SomeInput) =  for {
+    b <- createAction(a)
+    c <- createAction(b)
+    d <- createAction(c)
+} yield e
+
+exec(chain(alpha))
+```
+and to make the whole chain within a transaction:
+
+```
+exec(chain(alpha).transactionally)
+```

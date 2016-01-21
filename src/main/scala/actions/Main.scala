@@ -1,6 +1,6 @@
 package actions
 
-import slick.dbio.Effect.{Schema, Write}
+import slick.dbio.Effect.{Read, Schema, Write}
 
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -124,20 +124,46 @@ object Main {
   def exec[T](action: DBIO[T]): T =
     Await.result(db.run(action), 2 seconds)
 
+  def addAlbum(artist: String, title: String, year: Int): DBIOAction[Int, NoStream, Read with Write] = {
+    for {
+      nrOfAlbums <- AlbumTable
+                      .filter {
+                        album => album.artist === artist && album.year < year
+                      }.length.result
+      inserted <- if (nrOfAlbums > 0) { AlbumTable += Album(artist, title, year, Rating.Meh)} else {AlbumTable += Album(artist, title, year, Rating.Awesome)}
+    } yield inserted
+
+  }
+
+
   def main(args: Array[String]): Unit = {
     exec(createTableAction)
-    exec(insertAllAction)
-    exec(AlbumTable.result).foreach(println)
-    exec(ex1)
-    println("\nafter insertion (ex 1)")
-    exec(AlbumTable.result).foreach(println)
-    exec(ex2(2000))
-    println("\nafter update new albums'rating to Meh (ex 2)")
-    exec(AlbumTable.result).foreach(println)
-    exec(ex3("Justin Bieber"))
-    println("\nafter removing JB (ex 3)")
-    exec(AlbumTable.result).foreach(println)
+//    exec(insertAllAction)
+//    exec(AlbumTable.result).foreach(println)
+//    exec(ex1)
+//    println("\nafter insertion (ex 1)")
+//    exec(AlbumTable.result).foreach(println)
+//    exec(ex2(2000))
+//    println("\nafter update new albums'rating to Meh (ex 2)")
+//    exec(AlbumTable.result).foreach(println)
+//    exec(ex3("Justin Bieber"))
+//    println("\nafter removing JB (ex 3)")
+//    exec(AlbumTable.result).foreach(println)
 
+
+//    val chainedAction = insertAllAction andThen
+//                        ex1 andThen
+//                        ex2(2000) andThen
+//                        ex3("JustinBieber")
+//
+//    exec(chainedAction)
+//    exec(AlbumTable.result).foreach(println)
+
+    exec(addAlbum("Pearl Jam"     , "Vitalogy"        , 1994))
+    exec(addAlbum("Pearl Jam"     , "Ten"             , 1991))
+    exec(addAlbum("Pearl Jam"     , "No Code"         , 1996))
+    exec(addAlbum("Pearl Jam"     , "Vs."             , 1993))
+    exec(AlbumTable.result).foreach(println)
   }
 
 }
